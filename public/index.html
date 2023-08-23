@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <button id="addRowButton">Add Row</button>
+    <button id="removeRowButton">Remove Last Row</button>
+    <form id="dataForm">
+        <table id="dynamicTable">
+            <thead>
+                <tr>
+                    <th>Entry Date:</th>
+                    <th>Exit Date:</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Existing and dynamically added rows will be here -->
+            </tbody>
+        </table>
+        <button type="submit">Calculate</button>
+    </form>
+    
+    
+    <p>Remaining: </p>
+    <div id="messageContainer"></div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async function () {
+            const addRowButton = document.getElementById('addRowButton');
+            const removeRowButton = document.getElementById('removeRowButton');
+
+            const dynamicTable = document.getElementById('dynamicTable').getElementsByTagName('tbody')[0];
+            const dataForm = document.getElementById('dataForm');
+
+            try {
+                const response = await fetch('/get-data'); // Assuming you have a server route to get the data
+                const data = await response.json();
+                
+                // Populate dynamic table with preloaded data
+                data.forEach(entry => {
+                    const newRow = dynamicTable.insertRow();
+                    const entryCell = newRow.insertCell(0);
+                    const exitCell = newRow.insertCell(1);
+
+                    entryCell.innerHTML = `<input type="date" name="entry[]" value="${entry.entry}">`;
+                    exitCell.innerHTML = `<input type="date" name="exit[]" value="${entry.exit}">`;
+                });
+            } catch (error) {
+                
+            }
+
+            addRowButton.addEventListener('click', function () {
+                const newRow = dynamicTable.insertRow();
+                const entryCell = newRow.insertCell(0);
+                const exitCell = newRow.insertCell(1);
+
+                entryCell.innerHTML = '<input type="date" name="entry[]">';
+                exitCell.innerHTML = '<input type="date" name="exit[]">';
+            });
+
+            removeRowButton.addEventListener('click', function (){
+                if (dynamicTable.rows.length > 0) {
+                    dynamicTable.deleteRow(-1); // Delete the last row
+                }
+            })
+
+            dataForm.addEventListener('submit', function (event) {
+                event.preventDefault();
+
+                const formData = new FormData(dataForm);
+
+                fetch('/submit', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(Array.from(dynamicTable.querySelectorAll('tr')).map(row => ({
+                        entry: row.cells[0].querySelector('input').value,
+                        exit: row.cells[1].querySelector('input').value,
+                    }))),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Server Response:', data);
+                    messageContainer.textContent = data.message;
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+
+            });
+        });
+    </script>
+</body>
+</html>
